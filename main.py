@@ -5,19 +5,19 @@ import asyncio
 import os
 
 TOKEN = os.getenv("TOKEN")
-GUILD_ID = 123456789
-CATEGORIA_TICKET_ID = 123456789
-RUOLO_STAFF_ID = 123456789
-MAPPA_EH_URL = "https://i.imgur.com/INSERISCI_LINK_MAPPA.png"
+GUILD_ID = 1488262125708116198
+CATEGORIA_TICKET_ID = 1488541441373241364
+RUOLO_STAFF_ID = 1498676038937481246
+MAPPA_EH_URL = "INSERISCI_QUI_LINK_MAPPA"
 
 VILLE = {
-    "A1": {"nome": "Villa A1 - Vinewood Hills", "prezzo": "€250.000", "emoji": "🏡"},
-    "A2": {"nome": "Villa A2 - Vinewood Hills", "prezzo": "€300.000", "emoji": "🏡"},
-    "A3": {"nome": "Villa A3 - Rockford Hills", "prezzo": "€450.000", "emoji": "🏠"},
-    "A4": {"nome": "Villa A4 - Vespucci Beach", "prezzo": "€500.000", "emoji": "🏖️"},
-    "B1": {"nome": "Casa B1 - Mirror Park", "prezzo": "€120.000", "emoji": "🏠"},
-    "B2": {"nome": "Casa B2 - Sandy Shores", "prezzo": "€80.000", "emoji": "🏜️"},
-    "C1": {"nome": "Villa C1 - Paleto Bay", "prezzo": "€180.000", "emoji": "🌲"},
+    "A1": {"nome": "Villa A1 - Vinewood Hills", "prezzo": "€30.000", "emoji": "🏡", "zona": "Lusso - Vinewood Hills"},
+    "A2": {"nome": "Villa A2 - Vinewood Hills", "prezzo": "€35.000", "emoji": "🏡", "zona": "Lusso - Vinewood Hills"},
+    "A3": {"nome": "Villa A3 - Rockford Hills", "prezzo": "€40.000", "emoji": "🏠", "zona": "Lusso - Rockford Hills"},
+    "A4": {"nome": "Villa A4 - Vespucci Beach", "prezzo": "€45.000", "emoji": "🏖️", "zona": "Lusso - Vespucci Beach"},
+    "B1": {"nome": "Casa B1 - Mirror Park", "prezzo": "€15.000", "emoji": "🏠", "zona": "Città - Mirror Park"},
+    "B2": {"nome": "Casa B2 - Sandy Shores", "prezzo": "€10.000", "emoji": "🏜️", "zona": "Città - Sandy Shores"},
+    "C1": {"nome": "Villa C1 - Paleto Bay", "prezzo": "€20.000", "emoji": "🌲", "zona": "Paleto Bay"},
 }
 
 intents = discord.Intents.default()
@@ -25,9 +25,9 @@ intents.members = True
 intents.message_content = True
 bot = commands.Bot(command_prefix="!", intents=intents)
 
-class InfoVillaModal(discord.ui.Modal, title="Info Aggiuntive (Facoltativo)"):
-    uso = discord.ui.TextInput(label="Uso della villa / casa", placeholder="Es: Abitazione, Base gang, Azienda... (facoltativo)", required=False, max_length=100)
-    note = discord.ui.TextInput(label="Note aggiuntive", placeholder="Es: Ho gia i soldi, voglio visitarla... (facoltativo)", required=False, style=discord.TextStyle.paragraph, max_length=500)
+class InfoVillaModal(discord.ui.Modal, title="Info Aggiuntive - Facoltativo"):
+    uso = discord.ui.TextInput(label="Uso della villa / casa", placeholder="Es: Abitazione, Base gang, Azienda...", required=False, max_length=100)
+    note = discord.ui.TextInput(label="Note aggiuntive", placeholder="Es: Ho già i soldi, voglio visitarla...", required=False, style=discord.TextStyle.paragraph, max_length=500)
 
     def __init__(self, villa_key: str):
         super().__init__()
@@ -40,28 +40,41 @@ class InfoVillaModal(discord.ui.Modal, title="Info Aggiuntive (Facoltativo)"):
         overwrites = {
             guild.default_role: discord.PermissionOverwrite(view_channel=False),
             user: discord.PermissionOverwrite(view_channel=True, send_messages=True, read_message_history=True),
-            guild.get_role(RUOLO_STAFF_ID): discord.PermissionOverwrite(view_channel=True, send_messages=True, read_message_history=True),
             guild.me: discord.PermissionOverwrite(view_channel=True, send_messages=True, read_message_history=True)
         }
+        staff_role = guild.get_role(RUOLO_STAFF_ID)
+        if staff_role:
+            overwrites[staff_role] = discord.PermissionOverwrite(view_channel=True, send_messages=True, read_message_history=True)
         categoria = guild.get_channel(CATEGORIA_TICKET_ID)
-        channel = await guild.create_text_channel(name=f"villa-{self.villa_key.lower()}-{user.name}", category=categoria, overwrites=overwrites, topic=f"Ticket Villa {self.villa_key} | {user.id}")
+        channel = await guild.create_text_channel(
+            name=f"villa-{self.villa_key.lower()}-{user.name}",
+            category=categoria if categoria else None,
+            overwrites=overwrites,
+            topic=f"Ticket Villa {self.villa_key} | {user.id}"
+        )
         uso_text = self.uso.value if self.uso.value else "Non specificato"
         note_text = self.note.value if self.note.value else "Nessuna"
-        embed = discord.Embed(title=f"Richiesta {villa['nome']}", description=f"Nuova richiesta da {user.mention}", color=discord.Color.gold())
-        embed.add_field(name="Villa Selezionata", value=f"**{self.villa_key}** - {villa['nome']}", inline=False)
-        embed.add_field(name="Prezzo", value=villa['prezzo'], inline=True)
-        embed.add_field(name="Richiedente", value=f"{user.mention}", inline=True)
-        embed.add_field(name="Uso Previsto", value=uso_text, inline=False)
-        embed.add_field(name="Note", value=note_text, inline=False)
+        embed = discord.Embed(
+            title=f"🏡 Richiesta Acquisto - {villa['nome']}",
+            description=f"Nuova richiesta da {user.mention}",
+            color=discord.Color.gold()
+        )
+        embed.add_field(name="📍 Villa / Casa Selezionata", value=f"**{self.villa_key}** - {villa['nome']}", inline=False)
+        embed.add_field(name="🗺️ Zona", value=villa['zona'], inline=True)
+        embed.add_field(name="💰 Prezzo", value=villa['prezzo'], inline=True)
+        embed.add_field(name="👤 Richiedente", value=f"{user.mention} (`{user.id}`)", inline=False)
+        embed.add_field(name="🎯 Uso Previsto", value=uso_text, inline=False)
+        embed.add_field(name="📝 Note Aggiuntive", value=note_text, inline=False)
         embed.set_thumbnail(url=user.display_avatar.url)
-        view = ChiudiTicketView()
-        await channel.send(content=f"{user.mention} <@&{RUOLO_STAFF_ID}>", embed=embed, view=view)
-        await interaction.response.send_message(f"Ticket aperto! Vai su {channel.mention}", ephemeral=True)
+        embed.set_footer(text="Sistema Ville EH - Eclissi RP")
+        ping = f"<@&{RUOLO_STAFF_ID}>" if staff_role else ""
+        await channel.send(content=f"{user.mention} {ping}", embed=embed, view=ChiudiTicketView())
+        await interaction.response.send_message(f"✅ Ticket aperto! Vai su {channel.mention}", ephemeral=True)
 
 class ChiudiTicketView(discord.ui.View):
     def __init__(self):
         super().__init__(timeout=None)
-    @discord.ui.button(label="Chiudi Ticket", style=discord.ButtonStyle.red, custom_id="chiudi_ticket")
+    @discord.ui.button(label="🔒 Chiudi Ticket", style=discord.ButtonStyle.red, custom_id="chiudi_ticket_villa")
     async def chiudi(self, interaction: discord.Interaction, button: discord.ui.Button):
         await interaction.response.send_message("Ticket in chiusura tra 5 secondi...", ephemeral=False)
         await asyncio.sleep(5)
@@ -71,7 +84,12 @@ class VillaSelect(discord.ui.Select):
     def __init__(self):
         options = []
         for key, data in VILLE.items():
-            options.append(discord.SelectOption(label=f"{key} - {data['nome']}", description=f"Prezzo: {data['prezzo']}", emoji=data['emoji'], value=key))
+            options.append(discord.SelectOption(
+                label=f"{key} - {data['nome']}",
+                description=f"Prezzo: {data['prezzo']} | {data['zona']}",
+                emoji=data['emoji'],
+                value=key
+            ))
         super().__init__(placeholder="Seleziona una villa / casa...", min_values=1, max_values=1, options=options)
     async def callback(self, interaction: discord.Interaction):
         await interaction.response.send_modal(InfoVillaModal(self.values[0]))
@@ -84,9 +102,24 @@ class VillaView(discord.ui.View):
 @bot.tree.command(name="ticket", description="Apri un ticket per comprare una villa / casa")
 @app_commands.guilds(discord.Object(id=GUILD_ID))
 async def ticket(interaction: discord.Interaction):
-    embed = discord.Embed(title="MAPPA VILLE & CASE - EH", description="**Benvenuto nel sistema acquisto ville!**\n\nGuarda la mappa, seleziona dal menu la villa che vuoi e ti si aprira un ticket in automatico.\n\n**Zone:**\nA1 - A4 -> Lusso / Vinewood / Vespucci\nB1 - B2 -> Citta / Sandy\nC1 -> Paleto Bay\n\n*Info sull'uso facoltative.*", color=discord.Color.blue())
+    embed = discord.Embed(
+        title="🗺️ MAPPA VILLE & CASE - EH",
+        description=(
+            "**Benvenuto nel sistema acquisto ville!**\n\n"
+            "Guarda la mappa, seleziona dal menù qui sotto la villa che vuoi e ti si aprirà un ticket in automatico.\n\n"
+            "**🏡 ZONE:**\n"
+            "🟡 **A1 - A4** -> Lusso / Vinewood / Vespucci\n"
+            "🔵 **B1 - B2** -> Città / Sandy Shores\n"
+            "🟢 **C1** -> Paleto Bay\n\n"
+            "**💰 LISTINO:**\n"
+            "A1 - €30.000 | A2 - €35.000 | A3 - €40.000 | A4 - €45.000\n"
+            "B1 - €15.000 | B2 - €10.000 | C1 - €20.000\n\n"
+            "*Le informazioni sull'uso sono facoltative.*"
+        ),
+        color=discord.Color.blue()
+    )
     embed.set_image(url=MAPPA_EH_URL)
-    embed.set_footer(text="Sistema Ville EH")
+    embed.set_footer(text="Sistema Ville EH - Seleziona una villa per aprire il ticket")
     await interaction.response.send_message(embed=embed, view=VillaView(), ephemeral=True)
 
 @bot.event
