@@ -10,15 +10,17 @@ CATEGORIA_TICKET_ID = 1488541441373241364
 RUOLO_STAFF_ID = 1498676038937481246
 MAPPA_EH_URL = "INSERISCI_QUI_LINK_MAPPA"
 
-# A = VILLE / B = CASE
+# NOMI BASATI SULLA MAPPA CHE HAI MANDATO
 VILLE = {
-    "A1": {"nome": "Villa A1 - Vinewood Hills", "prezzo": "€30.000", "emoji": "🏡", "tipo": "VILLA"},
-    "A2": {"nome": "Villa A2 - Vinewood Hills", "prezzo": "€35.000", "emoji": "🏡", "tipo": "VILLA"},
-    "A3": {"nome": "Villa A3 - Rockford Hills", "prezzo": "€40.000", "emoji": "🏠", "tipo": "VILLA"},
-    "A4": {"nome": "Villa A4 - Vespucci Beach", "prezzo": "€45.000", "emoji": "🏖️", "tipo": "VILLA"},
-    "B1": {"nome": "Casa B1 - Mirror Park", "prezzo": "€15.000", "emoji": "🏠", "tipo": "CASA"},
-    "B2": {"nome": "Casa B2 - Sandy Shores", "prezzo": "€10.000", "emoji": "🏜️", "tipo": "CASA"},
-    "B3": {"nome": "Casa B3 - Paleto Bay", "prezzo": "€20.000", "emoji": "🌲", "tipo": "CASA"},
+    # --- VILLE A ---
+    "A1": {"nome": "Villa A1 - Collina Nord", "prezzo": "€30.000", "emoji": "🏡", "tipo": "VILLA", "zona": "Nord-Ovest, sopra il fiume"},
+    "A2": {"nome": "Villa A2 - Ponte Centrale", "prezzo": "€35.000", "emoji": "🏡", "tipo": "VILLA", "zona": "Centro-Nord, vicino al ponte"},
+    "A3": {"nome": "Villa A3 - Porto Est", "prezzo": "€40.000", "emoji": "🏠", "tipo": "VILLA", "zona": "Est, zona porto"},
+    "A4": {"nome": "Villa A4 - Costa Sud-Est", "prezzo": "€45.000", "emoji": "🏖️", "tipo": "VILLA", "zona": "Sud-Est, vicino al mare"},
+    # --- CASE B ---
+    "B1": {"nome": "Casa B1 - Quartiere Ovest", "prezzo": "€15.000", "emoji": "🏠", "tipo": "CASA", "zona": "Ovest, quartiere residenziale"},
+    "B2": {"nome": "Casa B2 - Centro Citta", "prezzo": "€10.000", "emoji": "🏜️", "tipo": "CASA", "zona": "Centro, centro citta"},
+    "B3": {"nome": "Casa B3 - Periferia Sud", "prezzo": "€20.000", "emoji": "🌲", "tipo": "CASA", "zona": "Sud, vicino autostrada"},
 }
 
 intents = discord.Intents.default()
@@ -47,6 +49,7 @@ class InfoModal(discord.ui.Modal, title="Info Facoltative"):
         ch = await guild.create_text_channel(name=f"{self.key.lower()}-{user.name}", category=cat if cat else None, overwrites=overwrites)
         embed = discord.Embed(title=f"{v['emoji']} {v['tipo']} - {v['nome']}", description=f"Richiesta di {user.mention}", color=discord.Color.gold())
         embed.add_field(name="Scelta", value=f"**{self.key}** - {v['nome']}", inline=False)
+        embed.add_field(name="Zona", value=v['zona'], inline=False)
         embed.add_field(name="Prezzo", value=v['prezzo'], inline=True)
         embed.add_field(name="Tipo", value=v['tipo'], inline=True)
         embed.add_field(name="Utente", value=user.mention, inline=False)
@@ -60,13 +63,13 @@ class ChiudiView(discord.ui.View):
         super().__init__(timeout=None)
     @discord.ui.button(label="Chiudi Ticket", style=discord.ButtonStyle.red, custom_id="chiudi")
     async def chiudi(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await interaction.response.send_message("Chiusura tra 5 secondi...", ephemeral=False)
+        await interaction.response.send_message("Chiusura tra 5 secondi...")
         await asyncio.sleep(5)
         await interaction.channel.delete()
 
 class Scelta(discord.ui.Select):
     def __init__(self):
-        opts = [discord.SelectOption(label=f"{k} - {d['nome']}", description=f"{d['tipo']} - Prezzo: {d['prezzo']}", emoji=d['emoji'], value=k) for k, d in VILLE.items()]
+        opts = [discord.SelectOption(label=f"{k} - {d['nome']}", description=f"{d['zona']} - Prezzo: {d['prezzo']}", emoji=d['emoji'], value=k) for k, d in VILLE.items()]
         super().__init__(placeholder="Scegli Villa o Casa...", options=opts)
     async def callback(self, interaction: discord.Interaction):
         await interaction.response.send_modal(InfoModal(self.values[0]))
@@ -80,13 +83,12 @@ class Pannello(discord.ui.View):
 async def ticket_pannel(interaction: discord.Interaction):
     embed = discord.Embed(
         title="MAPPA VILLE & CASE - EH",
-        description="**Scegli la tua Villa o Casa!**\n\n**VILLE (A):**\nA1 - €30.000 | A2 - €35.000\nA3 - €40.000 | A4 - €45.000\n\n**CASE (B):**\nB1 - €15.000 | B2 - €10.000 | B3 - €20.000\n\nSeleziona dal menu qui sotto",
+        description="**Scegli la tua Villa o Casa!**\n\n**VILLE (A):**\nA1 Collina Nord - €30.000\nA2 Ponte Centrale - €35.000\nA3 Porto Est - €40.000\nA4 Costa Sud-Est - €45.000\n\n**CASE (B):**\nB1 Quartiere Ovest - €15.000\nB2 Centro Citta - €10.000\nB3 Periferia Sud - €20.000\n\nSeleziona dal menu qui sotto",
         color=discord.Color.blue()
     )
     if MAPPA_EH_URL.startswith("http"):
         embed.set_image(url=MAPPA_EH_URL)
-    # ORA LO VEDONO TUTTI - NON EPHEMERAL
-    await interaction.response.send_message(embed=embed, view=Pannello(), ephemeral=False)
+    await interaction.response.send_message(embed=embed, view=Pannello())
 
 @bot.event
 async def on_ready():
