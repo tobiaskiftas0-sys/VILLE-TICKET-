@@ -1,4 +1,3 @@
-
 import discord
 from discord.ext import commands
 from discord import app_commands
@@ -86,7 +85,8 @@ async def ticket_pannel(interaction: discord.Interaction):
     )
     if MAPPA_EH_URL.startswith("http"):
         embed.set_image(url=MAPPA_EH_URL)
-    await interaction.response.send_message(embed=embed, view=Pannello(), ephemeral=True)
+    # ORA LO VEDONO TUTTI - NON EPHEMERAL
+    await interaction.response.send_message(embed=embed, view=Pannello(), ephemeral=False)
 
 @bot.event
 async def on_ready():
