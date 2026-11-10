@@ -34,42 +34,49 @@ class InfoVillaModal(discord.ui.Modal, title="Info Aggiuntive - Facoltativo"):
         self.villa_key = villa_key
 
     async def on_submit(self, interaction: discord.Interaction):
-        villa = VILLE[self.villa_key]
-        guild = interaction.guild
-        user = interaction.user
-        overwrites = {
-            guild.default_role: discord.PermissionOverwrite(view_channel=False),
-            user: discord.PermissionOverwrite(view_channel=True, send_messages=True, read_message_history=True),
-            guild.me: discord.PermissionOverwrite(view_channel=True, send_messages=True, read_message_history=True)
-        }
-        staff_role = guild.get_role(RUOLO_STAFF_ID)
-        if staff_role:
-            overwrites[staff_role] = discord.PermissionOverwrite(view_channel=True, send_messages=True, read_message_history=True)
-        categoria = guild.get_channel(CATEGORIA_TICKET_ID)
-        channel = await guild.create_text_channel(
-            name=f"villa-{self.villa_key.lower()}-{user.name}",
-            category=categoria if categoria else None,
-            overwrites=overwrites,
-            topic=f"Ticket Villa {self.villa_key} | {user.id}"
-        )
-        uso_text = self.uso.value if self.uso.value else "Non specificato"
-        note_text = self.note.value if self.note.value else "Nessuna"
-        embed = discord.Embed(
-            title=f"🏡 Richiesta Acquisto - {villa['nome']}",
-            description=f"Nuova richiesta da {user.mention}",
-            color=discord.Color.gold()
-        )
-        embed.add_field(name="📍 Villa / Casa Selezionata", value=f"**{self.villa_key}** - {villa['nome']}", inline=False)
-        embed.add_field(name="🗺️ Zona", value=villa['zona'], inline=True)
-        embed.add_field(name="💰 Prezzo", value=villa['prezzo'], inline=True)
-        embed.add_field(name="👤 Richiedente", value=f"{user.mention} (`{user.id}`)", inline=False)
-        embed.add_field(name="🎯 Uso Previsto", value=uso_text, inline=False)
-        embed.add_field(name="📝 Note Aggiuntive", value=note_text, inline=False)
-        embed.set_thumbnail(url=user.display_avatar.url)
-        embed.set_footer(text="Sistema Ville EH - Eclissi RP")
-        ping = f"<@&{RUOLO_STAFF_ID}>" if staff_role else ""
-        await channel.send(content=f"{user.mention} {ping}", embed=embed, view=ChiudiTicketView())
-        await interaction.response.send_message(f"✅ Ticket aperto! Vai su {channel.mention}", ephemeral=True)
+        try:
+            villa = VILLE[self.villa_key]
+            guild = interaction.guild
+            user = interaction.user
+            overwrites = {
+                guild.default_role: discord.PermissionOverwrite(view_channel=False),
+                user: discord.PermissionOverwrite(view_channel=True, send_messages=True, read_message_history=True),
+                guild.me: discord.PermissionOverwrite(view_channel=True, send_messages=True, read_message_history=True)
+            }
+            staff_role = guild.get_role(RUOLO_STAFF_ID)
+            if staff_role:
+                overwrites[staff_role] = discord.PermissionOverwrite(view_channel=True, send_messages=True, read_message_history=True)
+            categoria = guild.get_channel(CATEGORIA_TICKET_ID)
+            channel = await guild.create_text_channel(
+                name=f"villa-{self.villa_key.lower()}-{user.name}",
+                category=categoria if categoria else None,
+                overwrites=overwrites,
+                topic=f"Ticket Villa {self.villa_key} | {user.id}"
+            )
+            uso_text = self.uso.value if self.uso.value else "Non specificato"
+            note_text = self.note.value if self.note.value else "Nessuna"
+            embed = discord.Embed(
+                title=f"🏡 Richiesta Acquisto - {villa['nome']}",
+                description=f"Nuova richiesta da {user.mention}",
+                color=discord.Color.gold()
+            )
+            embed.add_field(name="📍 Villa / Casa Selezionata", value=f"**{self.villa_key}** - {villa['nome']}", inline=False)
+            embed.add_field(name="🗺️ Zona", value=villa['zona'], inline=True)
+            embed.add_field(name="💰 Prezzo", value=villa['prezzo'], inline=True)
+            embed.add_field(name="👤 Richiedente", value=f"{user.mention} (`{user.id}`)", inline=False)
+            embed.add_field(name="🎯 Uso Previsto", value=uso_text, inline=False)
+            embed.add_field(name="📝 Note Aggiuntive", value=note_text, inline=False)
+            embed.set_thumbnail(url=user.display_avatar.url)
+            embed.set_footer(text="Sistema Ville EH - Eclissi RP")
+            ping = f"<@&{RUOLO_STAFF_ID}>" if staff_role else ""
+            await channel.send(content=f"{user.mention} {ping}", embed=embed, view=ChiudiTicketView())
+            await interaction.response.send_message(f"✅ Ticket aperto! Vai su {channel.mention}", ephemeral=True)
+        except Exception as e:
+            print(f"Errore modal: {e}")
+            try:
+                await interaction.response.send_message(f"Errore apertura ticket: {e}", ephemeral=True)
+            except:
+                pass
 
 class ChiudiTicketView(discord.ui.View):
     def __init__(self):
@@ -96,12 +103,13 @@ class VillaSelect(discord.ui.Select):
 
 class VillaView(discord.ui.View):
     def __init__(self):
-        super().__init__(timeout=120)
+        super().__init__(timeout=None)
         self.add_item(VillaSelect())
 
-@bot.tree.command(name="ticket", description="Apri un ticket per comprare una villa / casa")
+# --- QUESTO E' IL COMANDO GIUSTO ---
+@bot.tree.command(name="ticket_pannel", description="Apri il pannello per comprare una villa / casa")
 @app_commands.guilds(discord.Object(id=GUILD_ID))
-async def ticket(interaction: discord.Interaction):
+async def ticket_pannel(interaction: discord.Interaction):
     embed = discord.Embed(
         title="🗺️ MAPPA VILLE & CASE - EH",
         description=(
@@ -118,7 +126,9 @@ async def ticket(interaction: discord.Interaction):
         ),
         color=discord.Color.blue()
     )
-    embed.set_image(url=MAPPA_EH_URL)
+    # Se il link mappa è valido lo mostra, se no non crasha
+    if MAPPA_EH_URL.startswith("http"):
+        embed.set_image(url=MAPPA_EH_URL)
     embed.set_footer(text="Sistema Ville EH - Seleziona una villa per aprire il ticket")
     await interaction.response.send_message(embed=embed, view=VillaView(), ephemeral=True)
 
@@ -126,8 +136,11 @@ async def ticket(interaction: discord.Interaction):
 async def on_ready():
     print(f"Bot online come {bot.user}")
     try:
+        # Cancella i vecchi comandi e sincronizza solo il nuovo
+        bot.tree.clear_commands(guild=discord.Object(id=GUILD_ID))
+        await bot.tree.sync(guild=discord.Object(id=GUILD_ID))
         synced = await bot.tree.sync(guild=discord.Object(id=GUILD_ID))
-        print(f"Sincronizzati {len(synced)} comandi")
+        print(f"Sincronizzati {len(synced)} comandi: {[c.name for c in synced]}")
     except Exception as e:
         print(e)
 
